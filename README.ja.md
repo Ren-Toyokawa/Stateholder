@@ -3,17 +3,17 @@
 [![Kotlin](https://img.shields.io/badge/kotlin-2.0.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-> **Warning**: This is an experimental project. Breaking changes occur frequently. Currently designed for Compose Multiplatform and Koin, it may not work with regular Android projects.
+> **警告**: 実験的プロジェクトです。破壊的変更が頻繁に発生します。Compose Multiplatform, Koin を前提に作成しているため、現時点では通常のAndroidプロジェクトでは使用できない可能性があります。
 
-This library implements the StateHolders pattern from [Android's official Architecture Guide](https://developer.android.com/topic/architecture#ui-layer) to reduce ViewModel responsibilities.
-Built with Kotlin Multiplatform and Compose Multiplatform.
+[Android公式アーキテクチャガイド](https://developer.android.com/topic/architecture#ui-layer)のStateHoldersパターンを用いてViewModelの責務を薄くすることを目的としています。
+Kotlin Multiplatform, Compose Multiplatformで実装しています。
 
 ## Before / After
 
-### Before: Complex ViewModel
+### Before: 複雑なViewModel
 ```kotlin
 class MainViewModel : ViewModel() {
-    // Authentication related
+    // 認証関連
     private val _authState = MutableStateFlow(AuthState())
     val authState: StateFlow<AuthState> = _authState
     private val authRepository = AuthRepository()
@@ -22,7 +22,7 @@ class MainViewModel : ViewModel() {
     fun logout() { /* ... */ }
     fun updateProfile(name: String) { /* ... */ }
     
-    // Cart related
+    // カート関連
     private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
     val cartItems: StateFlow<List<CartItem>> = _cartItems
     private val cartRepository = CartRepository()
@@ -31,7 +31,7 @@ class MainViewModel : ViewModel() {
     fun removeFromCart(itemId: String) { /* ... */ }
     fun calculateTotal(): Double { /* ... */ }
     
-    // Product related
+    // 商品関連
     private val _products = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _products
     private val productRepository = ProductRepository()
@@ -40,25 +40,25 @@ class MainViewModel : ViewModel() {
     fun searchProducts(query: String) { /* ... */ }
     fun filterByCategory(category: String) { /* ... */ }
     
-    // Complex state combination
+    // 複雑な状態結合
     val canCheckout = combine(authState, cartItems) { auth, cart ->
         auth.isAuthenticated && cart.isNotEmpty()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
     
-    // Many more mixed logics...
+    // 他にも多くのロジックが混在...
 }
 ```
 
-### After: Organized with StateHolders
+### After: StateHolderで整理
 
 #### ViewModel
 ```kotlin
 class MainViewModel : ViewModel() {
-    // SharedState declarations
+    // SharedStateの宣言
     @SharedState internal val authState = AuthSharedState()
     @SharedState internal val cartState = CartSharedState()
     
-    // StateHolder delegations
+    // StateHoldersの委譲
     val auth by stateHolder<AuthStateHolder>()
     val cart by stateHolder<CartStateHolder>()
     val product by stateHolder<ProductStateHolder>()
@@ -67,60 +67,60 @@ class MainViewModel : ViewModel() {
 
 #### StateHolders
 ```kotlin
-// Each feature has its own independent StateHolder
+// 各機能は独立したStateHolderに
 @StateHolder
 class AuthStateHolder(/* DI params */) : StateHolder<AuthSource, AuthUiState, AuthAction>(scope), AuthAction {
-    // Type definitions
+    // 型定義
     data class AuthSource(/* ... */)
     data class AuthUiState(/* ... */)
     interface AuthAction { /* ... */ }
     
-    // Pure function for state transformation
+    // 純粋関数で状態変換
     override fun defineState(source: AuthSource): AuthUiState { /* ... */ }
     
-    // Data source combination
+    // データソース結合
     override fun createStateFlow(): Flow<AuthSource> { /* ... */ }
     
-    // Initial state
+    // 初期状態
     override fun createInitialState(): AuthUiState { /* ... */ }
     
-    // Action implementation
+    // アクション実装
     override val action = this
 }
 
 @StateHolder
 class CartStateHolder(/* ... */) : StateHolder<CartSource, CartUiState, CartAction>(scope) {
-    // Same: defineState, createStateFlow, createInitialState, action
+    // 同上: defineState, createStateFlow, createInitialState, action
 }
 
 @StateHolder  
 class ProductStateHolder(/* ... */) : StateHolder<ProductSource, ProductUiState, ProductAction>(scope) {
-    // Same: defineState, createStateFlow, createInitialState, action
+    // 同上: defineState, createStateFlow, createInitialState, action
 }
 ```
 
-## StateHolder Operating Principles
+## StateHolderの動作原理
 
-StateHolders manage state through the **Source → State → Action** cycle.
+StateHolderは**Source → State → Action**の循環により状態管理を行います。
 
-### 1. Source Generation
-The `createStateFlow()` method monitors multiple data sources, detects changes, and generates Source objects.
+### 1. Sourceの生成
+`createStateFlow()`メソッドが複数のデータソースを監視し、変更を検知してSourceオブジェクトを生成します。
 
 ```kotlin
-// Combine Repository, SharedState, and local state
+// Repository、SharedState、ローカル状態を結合
 override fun createStateFlow(): Flow<AuthSource> {
     return combine(
-        authRepository.observeCurrentUser(),  // External data
-        authSharedState.observe(),           // Shared state
-        loadingState                         // Local state
+        authRepository.observeCurrentUser(),  // 外部データ
+        authSharedState.observe(),           // 共有状態
+        loadingState                         // ローカル状態
     ) { user, shared, loading ->
         AuthSource(user, shared.isAuthenticated, loading)
     }
 }
 ```
 
-### 2. State Transformation
-The `defineState()` pure function transforms Source to UI-optimized State. This function has no side effects and always returns the same State for the same Source.
+### 2. Stateへの変換
+`defineState()`純粋関数がSourceをUI用のStateに変換します。この関数は副作用を持たず、同じSourceに対して常に同じStateを返します。
 
 ```kotlin
 override fun defineState(source: AuthSource): AuthUiState {
@@ -132,36 +132,36 @@ override fun defineState(source: AuthSource): AuthUiState {
 }
 ```
 
-### 3. Action-driven Changes
-When Actions are executed from UI, StateHolder updates necessary data sources. This triggers Source regeneration and new State flows to UI.
+### 3. Actionによる変更
+UIからActionが実行されると、StateHolderは必要なデータソースを更新します。これがSourceの再生成をトリガーし、新しいStateがUIに流れます。
 
 ```kotlin
 override suspend fun login(email: String, password: String) {
-    loadingState.value = true                // Update local state
-    val result = authRepository.login(email) // Update Repository
+    loadingState.value = true                // ローカル状態を更新
+    val result = authRepository.login(email) // Repositoryを更新  
     loadingState.value = false
-    // → Automatically regenerates Source and reflects new State to UI
+    // → 自動的にSourceが再生成され、新しいStateがUIに反映
 }
 ```
 
-### Unidirectional Data Flow
-This design establishes a unidirectional flow of **Action → Data Update → Source Generation → State Transformation → UI Update**, achieving predictable state changes and easy debugging.
+### 一方向データフロー
+この設計により**Action → データ更新 → Source生成 → State変換 → UI更新**の一方向フローが確立され、状態変更の予測可能性とデバッグの容易性を実現します。
 
-## Technical Constraints
+## 技術的制約
 
-### Requirements
+### 必須要件
 
-- **Koin**: Required for dependency injection
-- **KSP**: Required for code generation
-- **ViewModelScope**: Required for StateHolder scope management
+- **Koin**: 依存性注入に必須
+- **KSP**: コード生成に必須
+- **ViewModelScope**: StateHolderのスコープ管理
 
-### Design Constraints
+### 設計上の制約
 
-- **No Dagger/Hilt support**: Designed for Koin-based projects
-- **SharedState mutability**: Intentionally mutable for change detection
-- **No direct StateHolder references**: Communication only through SharedState
+- **Dagger/Hilt非対応**: Koinベースの設計
+- **SharedStateのmutability**: 変更検知のため意図的にmutable
+- **StateHolder間の直接参照禁止**: SharedState経由のみ
 
-## Installation
+## インストール
 
 ```bash
 git clone https://github.com/Ren-Toyokawa/stateholder-kmp.git
@@ -181,10 +181,10 @@ dependencies {
 }
 ```
 
-## License
+## ライセンス
 
 Apache License 2.0
 
-## Author
+## 著者
 
 **Ren Toyokawa** - [@Ren-Toyokawa](https://github.com/Ren-Toyokawa)
