@@ -125,3 +125,17 @@ This project maintains both Japanese and English versions of README files:
 - Automated translation ensures consistency in structure and content
 - Manual review step allows for cultural and linguistic adjustments
 - Reduces maintenance overhead while keeping both versions current
+
+## Git Commit Guidelines
+
+### Commit Messages
+- Write clear, concise commit messages in English
+- Use conventional commit format when applicable
+- **Do NOT include** "Generated with [Claude Code]" signatures
+- Focus on what was changed and why
+
+### Pull Requests
+- Create comprehensive PR descriptions explaining the changes
+- **Do NOT include** "Generated with [Claude Code]" signatures
+- Include testing information and breaking changes if any
+- Reference related Linear issues when applicable
