@@ -1,6 +1,6 @@
 plugins {
-    kotlin("multiplatform")
-    id("com.android.library")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.library)
 }
 
 android {
@@ -45,8 +45,8 @@ kotlin {
                 api(project(":stateholder-core"))
                 
                 // ViewModel dependencies  
-                api("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-                implementation("io.insert-koin:koin-core:3.5.6")
+                api(libs.lifecycle.viewmodel.compose)
+                implementation(libs.koin.core)
             }
         }
         

@@ -17,14 +17,14 @@ StateHolder KMP is a Kotlin Multiplatform library for state management with KSP 
 
 # Run tests for specific module
 ./gradlew :stateholder-core:test
-./gradlew :stateholder-ksp:test
+./gradlew :stateholder-processor-koin:test
 
 # Clean build artifacts
 ./gradlew clean
 
 # Build specific modules
 ./gradlew :stateholder-core:build
-./gradlew :stateholder-ksp:build
+./gradlew :stateholder-processor-koin:build
 ./gradlew :stateholder-annotations:build
 ```
 
@@ -35,9 +35,9 @@ StateHolder KMP is a Kotlin Multiplatform library for state management with KSP 
 - **stateholder-annotations**: Contains annotation definitions (`@StateHolder`, `@SharedState`, `@InjectedParam`, `@InjectStateHolder`)
 - **stateholder-core**: Core StateHolder abstract class and base functionality
 - **stateholder-viewmodel**: ViewModel extensions and state holder delegation
-- **stateholder-ksp**: KSP processor for code generation (generates parameter providers and Koin modules)
-- **stateholder-koin**: Koin integration module (currently empty, likely for future features)
-- **stateholder-ksp-test**: Test module for KSP processor validation
+- **stateholder-viewmodel-koin**: ViewModel extensions and state holder delegation with Koin integration
+- **stateholder-processor-koin**: KSP processor for code generation (generates parameter providers and Koin modules)
+- **stateholder-processor-koin-test**: Test module for KSP processor validation
 
 ### Key Design Patterns
 
@@ -77,7 +77,7 @@ UI → ViewModel → StateHolder → Repository/UseCase → DataSource
 
 ### When Working with KSP Processor
 
-The processor (`stateholder-ksp` module) handles:
+The processor (`stateholder-processor-koin` module) handles:
 - Detection of annotated classes
 - Validation of StateHolder implementations
 - Generation of parameter providers and Koin modules
@@ -87,7 +87,7 @@ The processor (`stateholder-ksp` module) handles:
 
 - Unit tests use `kotlin-compile-testing` for KSP processor validation
 - Core module uses Turbine for Flow testing
-- Test snapshots stored in `stateholder-ksp/src/test/resources/snapshots/`
+- Test snapshots stored in `stateholder-processor-koin/src/test/resources/snapshots/`
 
 ## Platform Support
 
@@ -102,3 +102,26 @@ The processor (`stateholder-ksp` module) handles:
 - Coroutines 1.8.1
 - Koin 3.5.6
 - KotlinPoet 1.16.0 (for code generation)
+
+## README Management Guidelines
+
+This project maintains both Japanese and English versions of README files:
+
+- **README.ja.md** (Primary): The main documentation in Japanese
+- **README.md** (Secondary): English version synchronized from Japanese
+
+### Workflow for README Updates
+
+1. **Make changes to README.ja.md**: All content modifications should be made to the Japanese version first
+2. **Sync to English**: Use the custom slash command to translate and sync to README.md:
+   ```
+   /sync-readme
+   ```
+3. **Review the translation**: Manually review and adjust the English version if needed
+
+### Why This Approach
+
+- README.ja.md serves as the single source of truth
+- Automated translation ensures consistency in structure and content
+- Manual review step allows for cultural and linguistic adjustments
+- Reduces maintenance overhead while keeping both versions current

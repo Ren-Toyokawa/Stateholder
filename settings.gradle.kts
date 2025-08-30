@@ -17,7 +17,6 @@ dependencyResolutionManagement {
 
 include(":stateholder-annotations")
 include(":stateholder-core")
-include(":stateholder-viewmodel")
-include(":stateholder-ksp")
-include(":stateholder-ksp-test")
-include(":stateholder-koin")
+include(":stateholder-viewmodel-koin")
+include(":stateholder-processor-koin")
+include(":stateholder-processor-koin-test")

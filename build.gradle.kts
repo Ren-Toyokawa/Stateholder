@@ -1,10 +1,10 @@
 plugins {
-    kotlin("multiplatform") version "2.0.10" apply false
-    kotlin("android") version "2.0.10" apply false
-    kotlin("jvm") version "2.0.10" apply false
-    kotlin("plugin.serialization") version "2.0.10" apply false
-    id("com.android.library") version "8.5.2" apply false
-    id("com.google.devtools.ksp") version "2.0.10-1.0.24" apply false
+    alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.ksp) apply false
 }
 
 allprojects {

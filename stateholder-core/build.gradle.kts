@@ -1,7 +1,7 @@
 plugins {
-    kotlin("multiplatform")
-    kotlin("plugin.serialization")
-    id("com.android.library")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.android.library)
 }
 
 android {
@@ -42,17 +42,16 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                api("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
-                api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.1")
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-                implementation("io.insert-koin:koin-core:3.5.6")
+                api(libs.kotlinx.datetime)
+                api(libs.kotlinx.serialization.json)
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
         
         commonTest {
             dependencies {
                 implementation(kotlin("test"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+                implementation(libs.kotlinx.coroutines.test)
                 implementation("app.cash.turbine:turbine:1.1.0")
             }
         }

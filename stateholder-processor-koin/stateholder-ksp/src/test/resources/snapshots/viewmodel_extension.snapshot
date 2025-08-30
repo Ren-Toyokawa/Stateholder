@@ -1,0 +1,47 @@
+// Snapshot: Single StateHolder Injection
+fun UserViewModel.injectStateHolders(
+    userStateHolder: UserStateHolder,
+) {
+    this.userStateHolder = userStateHolder
+}
+
+// Snapshot: Multiple StateHolder Injection
+fun DashboardViewModel.injectStateHolders(
+    userStateHolder: UserStateHolder,
+    settingsStateHolder: SettingsStateHolder,
+    profileStateHolder: ProfileStateHolder,
+) {
+    this.userStateHolder = userStateHolder
+    this.settingsStateHolder = settingsStateHolder
+    this.profileStateHolder = profileStateHolder
+}
+
+// Snapshot: Special Property Names with Underscores
+fun ComplexViewModel.injectStateHolders(
+    _privateStateHolder: PrivateStateHolder,
+    state_holder_with_underscores: ComplexStateHolder,
+) {
+    this._privateStateHolder = _privateStateHolder
+    this.state_holder_with_underscores = state_holder_with_underscores
+}
+
+// Snapshot: Empty StateHolder List
+fun EmptyViewModel.injectStateHolders(
+) {
+}
+
+// Snapshot: Generic Types
+fun GenericViewModel.injectStateHolders(
+    listStateHolder: ListStateHolder<User>,
+    mapStateHolder: MapStateHolder<String, Any>,
+) {
+    this.listStateHolder = listStateHolder
+    this.mapStateHolder = mapStateHolder
+}
+
+// Snapshot: Fully Qualified Names
+fun QualifiedViewModel.injectStateHolders(
+    domainStateHolder: io.github.rentoyokawa.bulkapp.domain.DomainStateHolder,
+) {
+    this.domainStateHolder = domainStateHolder
+}
