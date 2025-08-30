@@ -9,7 +9,7 @@ plugins {
 
 allprojects {
     group = "io.github.rentoyokawa"
-    version = "0.1.0-SNAPSHOT"
+    version = "0.1.0-alpha01"
     
     repositories {
         google()
@@ -18,5 +18,5 @@ allprojects {
 }
 
 tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
+    delete(rootProject.layout.buildDirectory)
 }
