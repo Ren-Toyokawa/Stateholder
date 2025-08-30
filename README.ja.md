@@ -173,11 +173,10 @@ cd stateholder-kmp
 dependencies {
     implementation("io.github.rentoyokawa:stateholder-annotations:0.1.0")
     implementation("io.github.rentoyokawa:stateholder-core:0.1.0") 
-    implementation("io.github.rentoyokawa:stateholder-viewmodel:0.1.0")
-    ksp("io.github.rentoyokawa:stateholder-ksp:0.1.0")
+    implementation("io.github.rentoyokawa:stateholder-viewmodel-koin:0.1.0")
+    ksp("io.github.rentoyokawa:stateholder-processor-koin:0.1.0")
     
     implementation("io.insert-koin:koin-core:3.5.6")
-    implementation("io.github.rentoyokawa:stateholder-koin:0.1.0")
 }
 ```
 

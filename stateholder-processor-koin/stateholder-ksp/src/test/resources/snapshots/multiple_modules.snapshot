@@ -1,0 +1,18 @@
+val stateHolderModule = module {
+    factory<io.example.UserStateHolder> { params ->
+        io.example.UserStateHolder(
+            scope = params.get<CoroutineScope>()
+        )
+    }
+    factory<io.example.DashboardStateHolder> { params ->
+        io.example.DashboardStateHolder(
+            scope = params.get<CoroutineScope>(),
+            dispatcher = params.get<CoroutineDispatcher>()
+        )
+    }
+    factory<io.example.RecipeStateHolder> { params ->
+        io.example.RecipeStateHolder(
+            scope = params.get<CoroutineScope>()
+        )
+    }
+}
