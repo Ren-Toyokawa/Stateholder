@@ -19,6 +19,9 @@ koin = "3.5.6"
 # Code generation
 kotlinpoet = "1.16.0"
 
+# Documentation
+dokka = "1.9.20"
+
 # Testing
 junit = "4.13.2"
 kotlin-compile-testing = "1.6.0"
@@ -59,3 +62,4 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "android-gradle-plugin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
