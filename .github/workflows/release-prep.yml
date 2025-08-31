@@ -1,0 +1,105 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Validate version format
+      run: |
+        if [[ ! "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?$ ]]; then
+          echo "Error: Version must follow semantic versioning (e.g., 1.0.0 or 1.0.0-alpha)"
+          exit 1
+        fi
+    
+    - name: Create release branch
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git checkout -b "release/v${{ github.event.inputs.version }}"
+    
+    - name: Update version in build.gradle.kts
+      run: |
+        sed -i 's/version = ".*"/version = "${{ github.event.inputs.version }}"/' build.gradle.kts
+        
+        # Verify the change was made
+        if ! grep -q 'version = "${{ github.event.inputs.version }}"' build.gradle.kts; then
+          echo "Error: Failed to update version in build.gradle.kts"
+          exit 1
+        fi
+    
+    - name: Commit changes
+      run: |
+        git add build.gradle.kts
+        git commit -m "Bump version to ${{ github.event.inputs.version }}"
+    
+    - name: Push release branch
+      run: |
+        git push -u origin "release/v${{ github.event.inputs.version }}"
+    
+    - name: Create Pull Request
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: pullRequest } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Release v${{ github.event.inputs.version }}`,
+            head: `release/v${{ github.event.inputs.version }}`,
+            base: 'main',
+            body: `## Release v${{ github.event.inputs.version }}
+          
+          This PR prepares for the release of version ${{ github.event.inputs.version }}.
+          
+          ### Changes
+          - Bump version to ${{ github.event.inputs.version }} in \`build.gradle.kts\`
+          
+          ### Pre-merge Checklist
+          - [ ] All CI checks pass
+          - [ ] Maven Central dry-run succeeds
+          - [ ] Documentation is up to date
+          - [ ] Release notes are prepared
+          
+          ### Post-merge Actions
+          Once this PR is merged, the following will happen automatically:
+          - Git tag \`v${{ github.event.inputs.version }}\` will be created
+          - Artifacts will be published to Maven Central
+          - GitHub Release will be created
+          
+          ### Published Modules
+          - \`io.github.rentoyokawa:stateholder-annotations:${{ github.event.inputs.version }}\`
+          - \`io.github.rentoyokawa:stateholder-core:${{ github.event.inputs.version }}\`
+          - \`io.github.rentoyokawa:stateholder-viewmodel-koin:${{ github.event.inputs.version }}\`
+          - \`io.github.rentoyokawa:stateholder-processor-koin:${{ github.event.inputs.version }}\`
+          
+          ### Usage
+          \`\`\`kotlin
+          dependencies {
+              implementation("io.github.rentoyokawa:stateholder-core:${{ github.event.inputs.version }}")
+              implementation("io.github.rentoyokawa:stateholder-viewmodel-koin:${{ github.event.inputs.version }}")
+              ksp("io.github.rentoyokawa:stateholder-processor-koin:${{ github.event.inputs.version }}")
+          }
+          \`\`\``
+          });
+          
+          core.summary.addHeading('Release PR Created');
+          core.summary.addRaw(`Pull Request: #${pullRequest.number}`);
+          core.summary.addLink('View PR', pullRequest.html_url);
+          await core.summary.write();
+          
+          console.log(`Created PR #${pullRequest.number}: ${pullRequest.html_url}`);
