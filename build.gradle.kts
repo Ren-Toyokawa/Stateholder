@@ -9,7 +9,7 @@ plugins {
 
 allprojects {
     group = "io.github.rentoyokawa"
-    version = "0.1.0-alpha01"
+    version = project.findProperty("VERSION_NAME")?.toString() ?: "0.0.0-SNAPSHOT"
     
     repositories {
         google()

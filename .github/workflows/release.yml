@@ -1,9 +1,8 @@
 name: Release
 
 on:
-  push:
-    branches: [ main ]
-    paths: [ 'build.gradle.kts' ]
+  release:
+    types: [published]
 
 jobs:
   release:
@@ -26,31 +25,23 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     
-    - name: Extract version
+    - name: Extract version from tag
       id: version
       run: |
-        VERSION=$(grep -o 'version = "[^"]*"' build.gradle.kts | cut -d'"' -f2)
+        VERSION=${GITHUB_REF#refs/tags/v}
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Detected version: $VERSION"
+    
+    - name: Update version in build.gradle.kts
+      run: |
+        sed -i.bak 's/version = ".*"/version = "${{ steps.version.outputs.version }}"/' build.gradle.kts
+        echo "Updated version in build.gradle.kts to ${{ steps.version.outputs.version }}"
     
     - name: Build release
       run: ./gradlew build --no-daemon
     
     - name: Run tests
       run: ./gradlew test --no-daemon
-    
-    - name: Create tag
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git tag -a "v${{ steps.version.outputs.version }}" -m "Release version ${{ steps.version.outputs.version }}"
-    
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: main
-        tags: true
     
     - name: Publish to Maven Central
       run: ./gradlew publish --no-daemon
@@ -59,30 +50,3 @@ jobs:
         MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
         SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
         SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}
-    
-    - name: Create GitHub Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: "v${{ steps.version.outputs.version }}"
-        release_name: "Release v${{ steps.version.outputs.version }}"
-        body: |
-          ## StateHolder KMP v${{ steps.version.outputs.version }}
-          
-          ### Published Modules
-          - `io.github.rentoyokawa:stateholder-annotations:${{ steps.version.outputs.version }}`
-          - `io.github.rentoyokawa:stateholder-core:${{ steps.version.outputs.version }}`
-          - `io.github.rentoyokawa:stateholder-viewmodel-koin:${{ steps.version.outputs.version }}`
-          - `io.github.rentoyokawa:stateholder-processor-koin:${{ steps.version.outputs.version }}`
-          
-          ### Usage
-          ```kotlin
-          dependencies {
-              implementation("io.github.rentoyokawa:stateholder-core:${{ steps.version.outputs.version }}")
-              implementation("io.github.rentoyokawa:stateholder-viewmodel-koin:${{ steps.version.outputs.version }}")
-              ksp("io.github.rentoyokawa:stateholder-processor-koin:${{ steps.version.outputs.version }}")
-          }
-          ```
-        draft: false
-        prerelease: ${{ contains(steps.version.outputs.version, 'alpha') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'rc') }}
