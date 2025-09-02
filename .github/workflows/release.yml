@@ -29,7 +29,11 @@ jobs:
     - name: Extract version from tag
       id: version
       run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
+        else
+          VERSION=${GITHUB_REF#refs/tags/v}
+        fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Detected version: $VERSION"
     
