@@ -22,6 +22,9 @@ kotlinpoet = "1.16.0"
 # Documentation
 dokka = "1.9.20"
 
+# Publishing
+maven-publish = "0.30.0"
+
 # Testing
 junit = "4.13.2"
 kotlin-compile-testing = "1.6.0"
@@ -63,3 +66,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 android-library = { id = "com.android.library", version.ref = "android-gradle-plugin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "maven-publish" }

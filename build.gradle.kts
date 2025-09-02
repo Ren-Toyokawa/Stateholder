@@ -8,7 +8,7 @@ plugins {
 }
 
 allprojects {
-    group = "io.github.rentoyokawa"
+    group = project.findProperty("GROUP")?.toString() ?: "io.github.ren-toyokawa"
     version = project.findProperty("VERSION_NAME")?.toString() ?: "0.0.0-SNAPSHOT"
     
     repositories {
