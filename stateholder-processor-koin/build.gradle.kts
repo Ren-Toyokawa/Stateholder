@@ -39,4 +39,30 @@ dependencies {
 mavenPublishing {
     publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
+    
+    pom {
+        name = "StateHolder Processor Koin"
+        description = "KSP processor for StateHolder with Koin support"
+        inceptionYear = "2024"
+        url = "https://github.com/Ren-Toyokawa/stateholder-kmp"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
+        developers {
+            developer {
+                id = "rentoyokawa"
+                name = "Ren Toyokawa"
+                url = "https://github.com/Ren-Toyokawa/"
+            }
+        }
+        scm {
+            url = "https://github.com/Ren-Toyokawa/stateholder-kmp"
+            connection = "scm:git:git://github.com/Ren-Toyokawa/stateholder-kmp.git"
+            developerConnection = "scm:git:ssh://git@github.com/Ren-Toyokawa/stateholder-kmp.git"
+        }
+    }
 }
