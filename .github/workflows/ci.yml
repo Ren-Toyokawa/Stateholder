@@ -48,8 +48,6 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    # Temporarily disabled together with the build job. Re-enable in the CI follow-up ticket.
-    if: ${{ false }}
 
     steps:
     - uses: actions/checkout@v4
