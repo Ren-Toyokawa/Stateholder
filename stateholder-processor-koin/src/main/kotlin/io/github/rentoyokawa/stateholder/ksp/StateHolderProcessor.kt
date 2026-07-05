@@ -34,6 +34,11 @@ class StateHolderProcessor(
     private val stateHolderModuleGenerator = StateHolderModuleGenerator(codeGenerator, logger)
     private var koinModuleGenerated = false
     
+    // 生成Koinモジュールの出力先パッケージ名（KSPオプションから取得。未指定ならnull）
+    private val modulePackage: String? by lazy {
+        options["stateholder.module.package"]?.takeIf { it.isNotBlank() }
+    }
+
     // モジュール名を生成（プロジェクト名またはオプションから取得）
     private val moduleName: String by lazy {
         // KSPオプションからモジュール名を取得、なければデフォルト値を使用
@@ -378,10 +383,18 @@ class StateHolderProcessor(
                 }
             }
             
-            // StateHolderクラスのパッケージ名を取得（最初のStateHolderのパッケージを基準にする）
-            val basePackageName = if (stateHolderClasses.isNotEmpty()) {
-                val firstStateHolder = stateHolderClasses.first()
-                val packageName = firstStateHolder.packageName.asString()
+            // StateHolderクラスのパッケージ名を取得（決定的な優先順位で基準パッケージを算出する）
+            //   1. KSPオプション stateholder.module.package が指定されていれば最優先
+            //   2. 未指定の場合は distinct パッケージ集合を辞書順ソートした先頭
+            //      （getSymbolsWithAnnotation() の列挙順は非決定的なため first() は使わない）
+            //   3. StateHolderクラスが空の場合のフォールバックは現状維持
+            val explicitModulePackage = modulePackage
+            val basePackageName = if (explicitModulePackage != null) {
+                "$explicitModulePackage.generated"
+            } else if (stateHolderClasses.isNotEmpty()) {
+                val packageName = stateHolderClasses
+                    .map { it.packageName.asString() }
+                    .distinct().minOf { it }
                 // パッケージ名の末尾に.generatedを追加
                 "$packageName.generated"
             } else {
