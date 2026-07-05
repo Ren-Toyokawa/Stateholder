@@ -394,9 +394,7 @@ class StateHolderProcessor(
             } else if (stateHolderClasses.isNotEmpty()) {
                 val packageName = stateHolderClasses
                     .map { it.packageName.asString() }
-                    .distinct()
-                    .sorted()
-                    .first()
+                    .distinct().minOf { it }
                 // パッケージ名の末尾に.generatedを追加
                 "$packageName.generated"
             } else {
