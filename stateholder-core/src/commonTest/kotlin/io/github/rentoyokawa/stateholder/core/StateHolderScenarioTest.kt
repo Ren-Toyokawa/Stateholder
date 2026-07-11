@@ -15,7 +15,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 // ═══════════════════════════════════════════════════════════════════
-// テストフィクスチャ = 新設計での「実際の holder の書き方」の実例
+// テストフィクスチャ = 新設計での「実際の書き方」の実例
+// 各 feature は  専用 Store（読み）＋ Action（書き）＋ StateHolder（合成）  で構成する。
 // （一覧でユーザーを選ぶと詳細が SharedState 経由で追従するシナリオ）
 // ═══════════════════════════════════════════════════════════════════
 
@@ -54,21 +55,28 @@ private fun toListState(source: UserListSource): UserListState = UserListState(
         .map { UserListState.Row(it.id, it.name, isSelected = it.id == source.selectedId) },
 )
 
+// 読み側 = 専用 Store
+private class UserListStore(
+    selectedUserId: SharedState<String?>,
+    repository: FakeUserRepository,
+    scope: CoroutineScope,
+) : Store<UserListSource, UserListState>(scope) {
+    override val initialSource = UserListSource()
+    override val inputs: List<Flow<(UserListSource) -> UserListSource>> = listOf(
+        input(repository.users) { s, users -> s.copy(users = users) },
+        input(selectedUserId.flow) { s, id -> s.copy(selectedId = id) },
+    )
+    override fun defineState(source: UserListSource) = toListState(source)
+}
+
+// 合成 = StateHolder（Store を保持し、Action を書く）
 private class UserListStateHolder(
     private val selectedUserId: SharedState<String?>,
     repository: FakeUserRepository,
     scope: CoroutineScope,
 ) : StateHolder<UserListState, UserListAction> {
 
-    private val store = Store(
-        initial = UserListSource(),
-        scope = scope,
-        inputs = listOf(
-            input(repository.users) { s, users -> s.copy(users = users) },
-            input(selectedUserId.flow) { s, id -> s.copy(selectedId = id) },
-        ),
-        defineState = ::toListState,
-    )
+    private val store = UserListStore(selectedUserId, repository, scope)
 
     override val state = store.state
 
@@ -101,24 +109,29 @@ private fun toDetailState(source: UserDetailSource): UserDetailState =
     }
 
 @OptIn(ExperimentalCoroutinesApi::class)
+private class UserDetailStore(
+    selectedUserId: SharedState<String?>,
+    repository: FakeUserRepository,
+    scope: CoroutineScope,
+) : Store<UserDetailSource, UserDetailState>(scope) {
+    override val initialSource = UserDetailSource()
+    override val inputs: List<Flow<(UserDetailSource) -> UserDetailSource>> = listOf(
+        input(
+            selectedUserId.flow.flatMapLatest { id ->
+                if (id == null) flowOf(null) else repository.user(id)
+            },
+        ) { s, user -> s.copy(user = user) },
+    )
+    override fun defineState(source: UserDetailSource) = toDetailState(source)
+}
+
 private class UserDetailStateHolder(
     selectedUserId: SharedState<String?>,
     repository: FakeUserRepository,
     scope: CoroutineScope,
 ) : StateHolder<UserDetailState, UserDetailAction> {
 
-    private val store = Store(
-        initial = UserDetailSource(),
-        scope = scope,
-        inputs = listOf(
-            input(
-                selectedUserId.flow.flatMapLatest { id ->
-                    if (id == null) flowOf(null) else repository.user(id)
-                },
-            ) { s, user -> s.copy(user = user) },
-        ),
-        defineState = ::toDetailState,
-    )
+    private val store = UserDetailStore(selectedUserId, repository, scope)
 
     override val state = store.state
 

@@ -7,14 +7,27 @@ import io.github.rentoyokawa.stateholder.core.input
 import io.github.rentoyokawa.stateholder.sample.data.User
 import io.github.rentoyokawa.stateholder.sample.data.UserRepository
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 
-// ── Source: この holder の内部表現（外には漏れない）──────────
+/**
+ * 一覧側の StateHolder（= ViewModel の一片）。
+ * 読み側の [UserListStore] を保持し、書き側の [UserListAction] を実装して合成する。
+ */
+class UserListStateHolder(
+    private val selectedUserId: SharedState<String?>,
+    repository: UserRepository,
+    scope: CoroutineScope,
+) : StateHolder<UserListState, UserListAction> {
 
-data class UserListSource(
-    val query: String = "",
-    val users: List<User> = emptyList(),
-    val selectedId: String? = null,
-)
+    private val store = UserListStore(selectedUserId, repository, scope)
+
+    override val state = store.state
+
+    override val action = object : UserListAction {
+        override fun search(query: String) = store.update { it.copy(query = query) }
+        override fun select(id: String) = selectedUserId.set(id)
+    }
+}
 
 // ── State / Action: View への読み書き契約 ─────────────────
 
@@ -30,6 +43,36 @@ interface UserListAction {
     fun select(id: String)
 }
 
+// ── Store: Source の保持・編集・State 導出（読み側）──────────
+
+/**
+ * 一覧の読み側。局所状態（query）と外部入力（users / 選択 id）を Source に束ね、
+ * [toUserListState] で State を導出する。
+ */
+class UserListStore(
+    selectedUserId: SharedState<String?>,
+    repository: UserRepository,
+    scope: CoroutineScope,
+) : Store<UserListSource, UserListState>(scope) {
+
+    override val initialSource = UserListSource()
+
+    override val inputs: List<Flow<(UserListSource) -> UserListSource>> = listOf(
+        input(repository.users) { s, users -> s.copy(users = users) },
+        input(selectedUserId.flow) { s, id -> s.copy(selectedId = id) },
+    )
+
+    override fun defineState(source: UserListSource) = toUserListState(source)
+}
+
+// ── Source（内部表現）＋ 純変換 ───────────────────────────
+
+data class UserListSource(
+    val query: String = "",
+    val users: List<User> = emptyList(),
+    val selectedId: String? = null,
+)
+
 /** Source → State の純変換。holder を組み立てずに直接テストできる */
 fun toUserListState(source: UserListSource): UserListState = UserListState(
     query = source.query,
@@ -37,32 +80,3 @@ fun toUserListState(source: UserListSource): UserListState = UserListState(
         .filter { it.name.contains(source.query, ignoreCase = true) }
         .map { UserListState.Row(it.id, it.name, isSelected = it.id == source.selectedId) },
 )
-
-/**
- * 一覧側の StateHolder（= ViewModel の一片）。
- * - 局所状態（query）は Store が保持する Source に置き、Action から update で編集
- * - 選択 id は [SharedState] へ書き、詳細側 holder と協調する
- */
-class UserListStateHolder(
-    private val selectedUserId: SharedState<String?>,
-    repository: UserRepository,
-    scope: CoroutineScope,
-) : StateHolder<UserListState, UserListAction> {
-
-    private val store = Store(
-        initial = UserListSource(),
-        scope = scope,
-        inputs = listOf(
-            input(repository.users) { s, users -> s.copy(users = users) },
-            input(selectedUserId.flow) { s, id -> s.copy(selectedId = id) },
-        ),
-        defineState = ::toUserListState,
-    )
-
-    override val state = store.state
-
-    override val action = object : UserListAction {
-        override fun search(query: String) = store.update { it.copy(query = query) }
-        override fun select(id: String) = selectedUserId.set(id)
-    }
-}

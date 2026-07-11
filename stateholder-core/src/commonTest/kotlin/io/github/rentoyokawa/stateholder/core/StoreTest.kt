@@ -1,6 +1,8 @@
 package io.github.rentoyokawa.stateholder.core
 
 import app.cash.turbine.test
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -17,24 +19,24 @@ class StoreTest {
 
     private data class CounterSource(val count: Int = 0, val step: Int = 1)
 
-    private fun newStore(
-        scope: kotlinx.coroutines.CoroutineScope,
-        inputs: List<kotlinx.coroutines.flow.Flow<(CounterSource) -> CounterSource>> = emptyList(),
-    ) = Store(
-        initial = CounterSource(),
-        scope = scope,
-        inputs = inputs,
-    ) { source -> "count=${source.count}" }
+    /** テスト用の専用 Store（新形式: Store を継承して override で構成する） */
+    private class CounterStore(
+        scope: CoroutineScope,
+        override val inputs: List<Flow<(CounterSource) -> CounterSource>> = emptyList(),
+    ) : Store<CounterSource, String>(scope) {
+        override val initialSource = CounterSource()
+        override fun defineState(source: CounterSource) = "count=${source.count}"
+    }
 
     @Test
     fun `初期stateはdefineState(initial)の値になる`() = runTest {
-        val store = newStore(backgroundScope)
+        val store = CounterStore(backgroundScope)
         assertEquals("count=0", store.state.value)
     }
 
     @Test
     fun `updateがdefineState経由でstateに反映される`() = runTest {
-        val store = newStore(backgroundScope)
+        val store = CounterStore(backgroundScope)
         store.state.test {
             assertEquals("count=0", awaitItem())
 
@@ -50,7 +52,7 @@ class StoreTest {
     fun `copyによる不変更新は毎回emitされる`() = runTest {
         // 旧設計の「同一インスタンス再代入で emit されない」バグが
         // update + copy の一本化で構造的に起きないことの確認
-        val store = newStore(backgroundScope)
+        val store = CounterStore(backgroundScope)
         store.state.test {
             assertEquals("count=0", awaitItem())
             store.update { it.copy(count = 1) }
@@ -63,7 +65,7 @@ class StoreTest {
     @Test
     fun `外部入力(inputs)が購読中にSourceへ合流する`() = runTest {
         val external = MutableStateFlow(0)
-        val store = newStore(
+        val store = CounterStore(
             scope = backgroundScope,
             inputs = listOf(
                 input(external) { source, value -> source.copy(count = value) },
@@ -84,7 +86,7 @@ class StoreTest {
     @Test
     fun `ユーザー操作(update)と外部入力(inputs)が同じSourceに合流する`() = runTest {
         val external = MutableStateFlow(100)
-        val store = newStore(
+        val store = CounterStore(
             scope = backgroundScope,
             inputs = listOf(
                 input(external) { source, value -> source.copy(count = value) },
@@ -105,7 +107,7 @@ class StoreTest {
 
     @Test
     fun `購読が絶えてもSourceは保持され再購読で最新値から始まる`() = runTest {
-        val store = newStore(backgroundScope)
+        val store = CounterStore(backgroundScope)
 
         store.state.test {
             assertEquals("count=0", awaitItem())
