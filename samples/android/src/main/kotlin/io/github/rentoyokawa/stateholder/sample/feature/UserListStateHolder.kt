@@ -59,7 +59,12 @@ class UserListStore(
     override val initialState = UserListState()
 
     override fun sources(local: Flow<UserListLocal>): Flow<UserListSource> =
-        combine(local, repository.users, selectedUserId.flow, ::UserListSource)
+        combine(
+            local,
+            repository.users,
+            selectedUserId.flow,
+            ::UserListSource
+        )
 
     override fun defineState(source: UserListSource) = toUserListState(source)
 }
