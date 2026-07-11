@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.StateFlow
  * @param Action View から呼べる操作の契約（利用側が interface として定義する）
  */
 interface StateHolder<State, Action> {
+    /** View に公開する UI 状態の読み取り口 */
     val state: StateFlow<State>
+
+    /** View から呼べる操作の書き込み口 */
     val action: Action
 }

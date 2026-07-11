@@ -19,16 +19,18 @@ import kotlinx.coroutines.flow.update
 class SharedState<T>(initial: T) {
     private val _flow = MutableStateFlow(initial)
 
-    /** 購読口。Store の入力（[input] ヘルパー）に渡す */
+    /** 購読口。[Store] の sources() の combine 入力として渡す */
     val flow: StateFlow<T> = _flow.asStateFlow()
 
     /** 現在値 */
     val value: T get() = _flow.value
 
+    /** 値を置き換える */
     fun set(value: T) {
         _flow.value = value
     }
 
+    /** 現在値から新しい値を導出して更新する */
     fun update(transform: (T) -> T) {
         _flow.update(transform)
     }

@@ -69,6 +69,7 @@ abstract class Store<Local, Source, State>(
     }
 
     companion object {
+        /** [started] 未指定時の WhileSubscribed 停止タイムアウト（ミリ秒） */
         const val DEFAULT_STOP_TIMEOUT_MILLIS = 5_000L
     }
 }
