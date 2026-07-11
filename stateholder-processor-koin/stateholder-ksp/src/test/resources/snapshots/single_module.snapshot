@@ -1,7 +1,0 @@
-val stateHolderModule = module {
-    factory<io.example.UserStateHolder> { params ->
-        io.example.UserStateHolder(
-            scope = params.get<CoroutineScope>()
-        )
-    }
-}
