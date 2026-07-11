@@ -3,12 +3,12 @@ package io.github.rentoyokawa.stateholder.sample.feature
 import io.github.rentoyokawa.stateholder.core.SharedState
 import io.github.rentoyokawa.stateholder.core.StateHolder
 import io.github.rentoyokawa.stateholder.core.Store
-import io.github.rentoyokawa.stateholder.core.input
 import io.github.rentoyokawa.stateholder.sample.data.User
 import io.github.rentoyokawa.stateholder.sample.data.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 
@@ -46,37 +46,41 @@ interface UserDetailAction {
     fun toggleFavorite()
 }
 
-// ── Store: 選択 id を購読して詳細を追従（読み側）─────────────
+// ── Store: 選択 id を購読して詳細を combine 合成（読み側）─────
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserDetailStore(
-    selectedUserId: SharedState<String?>,
-    repository: UserRepository,
+    private val selectedUserId: SharedState<String?>,
+    private val repository: UserRepository,
     scope: CoroutineScope,
-) : Store<UserDetailSource, UserDetailState>(scope) {
+) : Store<UserDetailLocal, UserDetailSource, UserDetailState>(scope) {
 
-    override val initialSource = UserDetailSource()
+    override val initialLocal = UserDetailLocal()
+    override val initialState = UserDetailState.NothingSelected
 
-    override val inputs: List<Flow<(UserDetailSource) -> UserDetailSource>> = listOf(
-        input(
+    override fun sources(local: Flow<UserDetailLocal>): Flow<UserDetailSource> =
+        combine(
+            local,
             selectedUserId.flow.flatMapLatest { id ->
                 if (id == null) flowOf(null) else repository.user(id)
             },
-        ) { s, user -> s.copy(user = user) },
-    )
+            ::UserDetailSource,
+        )
 
     override fun defineState(source: UserDetailSource) = toUserDetailState(source)
 }
 
-// ── Source（内部表現）＋ 純変換 ───────────────────────────
+// ── Local（書ける真実）／ Source ／ 純変換 ─────────────────
+
+data class UserDetailLocal(val isFavorite: Boolean = false)
 
 data class UserDetailSource(
-    val user: User? = null,
-    val isFavorite: Boolean = false,
+    val local: UserDetailLocal,
+    val user: User?,
 )
 
 fun toUserDetailState(source: UserDetailSource): UserDetailState =
     when (val user = source.user) {
         null -> UserDetailState.NothingSelected
-        else -> UserDetailState.Loaded(user.name, user.bio, source.isFavorite)
+        else -> UserDetailState.Loaded(user.name, user.bio, source.local.isFavorite)
     }

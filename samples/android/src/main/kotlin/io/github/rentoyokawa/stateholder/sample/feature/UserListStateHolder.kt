@@ -3,11 +3,11 @@ package io.github.rentoyokawa.stateholder.sample.feature
 import io.github.rentoyokawa.stateholder.core.SharedState
 import io.github.rentoyokawa.stateholder.core.StateHolder
 import io.github.rentoyokawa.stateholder.core.Store
-import io.github.rentoyokawa.stateholder.core.input
 import io.github.rentoyokawa.stateholder.sample.data.User
 import io.github.rentoyokawa.stateholder.sample.data.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 /**
  * 一覧側の StateHolder（= ViewModel の一片）。
@@ -43,40 +43,41 @@ interface UserListAction {
     fun select(id: String)
 }
 
-// ── Store: Source の保持・編集・State 導出（読み側）──────────
+// ── Store: Local の保持 ＋ 外部データの combine 合成（読み側）────
 
 /**
- * 一覧の読み側。局所状態（query）と外部入力（users / 選択 id）を Source に束ね、
- * [toUserListState] で State を導出する。
+ * 一覧の読み側。書ける局所状態（[UserListLocal]）を保持し、
+ * 外部データ（users / 選択 id）を [sources] の combine で合成して [toUserListState] で導出する。
  */
 class UserListStore(
-    selectedUserId: SharedState<String?>,
-    repository: UserRepository,
+    private val selectedUserId: SharedState<String?>,
+    private val repository: UserRepository,
     scope: CoroutineScope,
-) : Store<UserListSource, UserListState>(scope) {
+) : Store<UserListLocal, UserListSource, UserListState>(scope) {
 
-    override val initialSource = UserListSource()
+    override val initialLocal = UserListLocal()
+    override val initialState = UserListState()
 
-    override val inputs: List<Flow<(UserListSource) -> UserListSource>> = listOf(
-        input(repository.users) { s, users -> s.copy(users = users) },
-        input(selectedUserId.flow) { s, id -> s.copy(selectedId = id) },
-    )
+    override fun sources(local: Flow<UserListLocal>): Flow<UserListSource> =
+        combine(local, repository.users, selectedUserId.flow, ::UserListSource)
 
     override fun defineState(source: UserListSource) = toUserListState(source)
 }
 
-// ── Source（内部表現）＋ 純変換 ───────────────────────────
+// ── Local（書ける真実）／ Source（合成した内部表現）／ 純変換 ────
+
+data class UserListLocal(val query: String = "")
 
 data class UserListSource(
-    val query: String = "",
-    val users: List<User> = emptyList(),
-    val selectedId: String? = null,
+    val local: UserListLocal,
+    val users: List<User>,
+    val selectedId: String?,
 )
 
 /** Source → State の純変換。holder を組み立てずに直接テストできる */
 fun toUserListState(source: UserListSource): UserListState = UserListState(
-    query = source.query,
+    query = source.local.query,
     rows = source.users
-        .filter { it.name.contains(source.query, ignoreCase = true) }
+        .filter { it.name.contains(source.local.query, ignoreCase = true) }
         .map { UserListState.Row(it.id, it.name, isSelected = it.id == source.selectedId) },
 )
