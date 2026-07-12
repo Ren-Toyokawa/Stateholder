@@ -7,7 +7,6 @@ import com.tschuchort.compiletesting.SourceFile
 import com.tschuchort.compiletesting.kspArgs
 import com.tschuchort.compiletesting.kspSourcesDir
 import com.tschuchort.compiletesting.symbolProcessorProviders
-import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -15,58 +14,94 @@ import kotlin.test.assertTrue
 /**
  * 生成Koinモジュールの出力先パッケージ決定ロジックの決定性を検証するテスト。
  *
- * `StateHolderProcessor.generateKoinModule()` は以前、`@StateHolder` クラスの
- * 列挙順（`getSymbolsWithAnnotation()` の非決定的な順序）に依存する `first()` を
- * 使って出力先パッケージを決めていた（BuildApp CI でのフレークの根本原因）。
- * このテストは、修正後のロジック（KSPオプション優先 → distinctパッケージの辞書順ソート）
- * が列挙順に依存せず常に同じ結果を返すことを保証する。
+ * 新設計（[[STA-14]]）では基準は「ViewModel のパッケージ」の distinct 集合の辞書順ソート先頭になる。
+ * `getSymbolsWithAnnotation()` / `getAllFiles()` の列挙順は非決定的なため、
+ * [ViewModelDetector] や本プロセッサーが `first()` 等の未ソート列挙依存を再発させていないことを保証する
+ * （[[STA-11]] のフレーク再発防止）。
  */
 class DeterministicPackageTest {
 
-    /** 2つのパッケージに分散した @StateHolder クラスを含むソース一式。
-     *  辞書順で "com.example.alpha" が "com.example.zeta" より先になるようにしている。 */
+    /** VM が複数パッケージに分散した入力一式。辞書順で "com.example.alpha" が先頭になるようにしている。 */
     private fun multiPackageSources(): List<SourceFile> = listOf(
         SourceFile.kotlin(
-            "ZetaStateHolder.kt",
+            "Repo.kt",
+            """
+            package com.example.repo
+
+            class FakeRepository
+            """.trimIndent(),
+        ),
+        SourceFile.kotlin(
+            "ZetaHolder.kt",
+            """
+            package com.example.holder
+
+            import io.github.rentoyokawa.stateholder.annotations.StateHolder
+            import com.example.repo.FakeRepository
+
+            @StateHolder
+            class ZetaStateHolder(val repository: FakeRepository)
+            """.trimIndent(),
+        ),
+        SourceFile.kotlin(
+            "ZetaViewModel.kt",
             """
             package com.example.zeta
 
-            import io.github.rentoyokawa.stateholder.annotations.StateHolder
+            import androidx.lifecycle.ViewModel
+            import com.example.holder.ZetaStateHolder
 
-            @StateHolder
-            class ZetaStateHolder
-            """.trimIndent()
+            class ZetaViewModel(val holder: ZetaStateHolder) : ViewModel()
+            """.trimIndent(),
         ),
         SourceFile.kotlin(
-            "AlphaStateHolder.kt",
+            "AlphaViewModel.kt",
             """
             package com.example.alpha
 
-            import io.github.rentoyokawa.stateholder.annotations.StateHolder
+            import androidx.lifecycle.ViewModel
+            import com.example.holder.ZetaStateHolder
 
-            @StateHolder
-            class AlphaStateHolder
-            """.trimIndent()
-        )
+            class AlphaViewModel(val holder: ZetaStateHolder) : ViewModel()
+            """.trimIndent(),
+        ),
     )
 
     private fun singlePackageSources(): List<SourceFile> = listOf(
         SourceFile.kotlin(
-            "SingleStateHolder.kt",
+            "Repo.kt",
+            """
+            package com.example.single
+
+            class FakeRepository
+            """.trimIndent(),
+        ),
+        SourceFile.kotlin(
+            "SingleHolder.kt",
             """
             package com.example.single
 
             import io.github.rentoyokawa.stateholder.annotations.StateHolder
 
             @StateHolder
-            class SingleStateHolder
-            """.trimIndent()
-        )
+            class SingleStateHolder(val repository: FakeRepository)
+            """.trimIndent(),
+        ),
+        SourceFile.kotlin(
+            "SingleViewModel.kt",
+            """
+            package com.example.single
+
+            import androidx.lifecycle.ViewModel
+
+            class SingleViewModel(val holder: SingleStateHolder) : ViewModel()
+            """.trimIndent(),
+        ),
     )
 
     private fun compile(
         sources: List<SourceFile>,
-        options: Map<String, String> = emptyMap()
+        options: Map<String, String> = emptyMap(),
     ): Pair<KotlinCompilation.Result, KotlinCompilation> {
         val compilation = KotlinCompilation().apply {
             this.sources = sources
@@ -78,11 +113,10 @@ class DeterministicPackageTest {
         return compilation.compile() to compilation
     }
 
-    /** kspSourcesDir配下から生成された StateHolderModule_Generated.kt の package 宣言を取得する。 */
     private fun generatedPackageOf(compilation: KotlinCompilation): String {
         val generatedFile = requireNotNull(
             compilation.kspSourcesDir.walkTopDown()
-                .firstOrNull { it.isFile && it.name == "StateHolderModule_Generated.kt" }
+                .firstOrNull { it.isFile && it.name == "StateHolderModule_Generated.kt" },
         ) { "StateHolderModule_Generated.kt が生成されていません（kspSourcesDir: ${compilation.kspSourcesDir}）" }
 
         val packageLine = generatedFile.readLines()
@@ -93,7 +127,7 @@ class DeterministicPackageTest {
     }
 
     @Test
-    fun `複数パッケージに分散したStateHolderの出力先は辞書順ソート先頭パッケージになる`() {
+    fun `複数パッケージに分散したVMの出力先は辞書順ソート先頭パッケージになる`() {
         val (result, compilation) = compile(multiPackageSources())
 
         assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)
@@ -110,7 +144,7 @@ class DeterministicPackageTest {
 
         assertTrue(
             runs.all { it == runs.first() },
-            "複数回のコンパイルで出力先パッケージが一致しない（非決定的）: $runs"
+            "複数回のコンパイルで出力先パッケージが一致しない（非決定的）: $runs",
         )
         assertEquals("com.example.alpha.generated", runs.first())
     }
@@ -119,7 +153,7 @@ class DeterministicPackageTest {
     fun `stateholder module packageオプションを指定すると出力先パッケージがその値になる`() {
         val (result, compilation) = compile(
             multiPackageSources(),
-            options = mapOf("stateholder.module.package" to "com.example.custom")
+            options = mapOf("stateholder.module.package" to "com.example.custom"),
         )
 
         assertEquals(KotlinCompilation.ExitCode.OK, result.exitCode, result.messages)

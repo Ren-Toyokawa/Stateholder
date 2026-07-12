@@ -16,23 +16,27 @@ kotlin {
 dependencies {
     // KSP API（プロセッサー作成用）
     implementation(libs.ksp.api)
-    
+
     // コード生成用
     implementation(libs.kotlinpoet)
-    
+    // KSType -> KotlinPoet TypeName 変換（SharedState<T> の T を型安全に扱うため）
+    implementation(libs.kotlinpoet.ksp)
+
     // アノテーション定義（型安全なアクセスのため）
     implementation(project(":stateholder-annotations"))
-    
-    // テスト環境でKSPプロセッサーを適用
+
+    // テスト環境でKSPプロセッサーを適用（kspWithCompilation=true で生成コードを実コンパイルするため
+    // 依存は testImplementation にする。testCompileOnly だと実行時クラスパスに乗らずコンパイルが失敗する）
     testImplementation(libs.kotlin.compile.testing)
     testImplementation(libs.kotlin.compile.testing.ksp)
-    testCompileOnly(libs.lifecycle.viewmodel.compose)
-    testCompileOnly(libs.kotlinx.coroutines.core)
+    testImplementation(libs.lifecycle.viewmodel.compose)
+    testImplementation(libs.kotlinx.coroutines.core)
+    testImplementation(project(":stateholder-core"))
+    testImplementation(libs.koin.core)
 
     // テスト用
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinpoet)
-    testImplementation(libs.mockk)
 }
 
 
