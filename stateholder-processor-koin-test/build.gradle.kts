@@ -19,7 +19,6 @@ dependencies {
     // Dependencies for processor
     implementation(project(":stateholder-annotations"))
     implementation(project(":stateholder-core"))
-    implementation(project(":stateholder-viewmodel-koin"))
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.koin.core)
     implementation(libs.lifecycle.viewmodel)
