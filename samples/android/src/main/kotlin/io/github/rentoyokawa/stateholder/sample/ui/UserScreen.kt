@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.rentoyokawa.stateholder.core.StateHolder
 import io.github.rentoyokawa.stateholder.sample.feature.UserDetailAction
 import io.github.rentoyokawa.stateholder.sample.feature.UserDetailState
@@ -33,10 +32,11 @@ import io.github.rentoyokawa.stateholder.sample.feature.UserListAction
 import io.github.rentoyokawa.stateholder.sample.feature.UserListState
 import io.github.rentoyokawa.stateholder.sample.feature.UserScreenViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun UserScreen(
-    viewModel: UserScreenViewModel = viewModel(factory = UserScreenViewModel.Factory),
+    viewModel: UserScreenViewModel = koinViewModel(),
 ) {
     Row(Modifier.fillMaxSize()) {
         UserListPane(
