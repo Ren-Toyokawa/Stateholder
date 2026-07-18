@@ -1,5 +1,6 @@
 package io.github.rentoyokawa.stateholder.sample.feature
 
+import io.github.rentoyokawa.stateholder.annotations.StateHolder as StateHolderAnnotation
 import io.github.rentoyokawa.stateholder.core.SharedState
 import io.github.rentoyokawa.stateholder.core.StateHolder
 import io.github.rentoyokawa.stateholder.core.Store
@@ -15,7 +16,11 @@ import kotlinx.coroutines.flow.flowOf
 /**
  * 詳細側の StateHolder。読み側の [UserDetailStore] を保持し、
  * 書き側の [UserDetailAction] を実装して合成する。
+ *
+ * `@StateHolder` を付与し、KSP（stateholder-processor-koin）が
+ * [UserScreenViewModel] の Koin `factory { }` 定義を生成する対象にする（STA-14 成果の消費）。
  */
+@StateHolderAnnotation
 class UserDetailStateHolder(
     selectedUserId: SharedState<String?>,
     repository: UserRepository,

@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -32,6 +33,8 @@ android {
 
 dependencies {
     implementation(project(":stateholder-core"))
+    implementation(project(":stateholder-annotations"))
+    ksp(project(":stateholder-processor-koin"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
@@ -41,4 +44,12 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+}
+
+ksp {
+    arg("stateholder.module.suffix", "sample")
+    arg("stateholder.module.package", "io.github.rentoyokawa.stateholder.sample.di")
 }
